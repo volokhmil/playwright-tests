@@ -6,48 +6,43 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron: '15 * * * *'  # запуск щогодини о 15-й хвилині
+    # Запуск щогодини на 15-й хвилині
+    - cron: '15 * * * *'
 
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
-      
-      - name: Run Playwright tests
-        run: npx playwright test
-        env:
-          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
-          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
-      
-      - name: Upload Playwright Report as artifact
-        uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
-      
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.PAT_TOKEN }}
-          publish_dir: ./playwright-report
-      
-      - name: Notify Slack about test results
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,commit,author,ref,workflow,took
-          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: lts/*
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+
+    - name: Run Playwright tests
+      run: npx playwright test
+      env:
+        TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+        TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+
+    - name: Deploy Playwright Report to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        personal_token: ${{ secrets.PAT_TOKEN }}  # переконайся, що PAT_TOKEN це токен з правами repo
+        publish_dir: ./playwright-report
+
+    - name: Notify Slack about test results
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        fields: repo,message,commit,author,ref,workflow,took
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
