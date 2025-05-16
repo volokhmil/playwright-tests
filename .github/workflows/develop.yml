@@ -3,10 +3,8 @@ name: Playwright Tests
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
   schedule:
-    - cron: '15 * * * *' # запускається щогодини о 15 хвилин
+    - cron: '15 * * * *' # Щогодини о 15 хвилин
 
 jobs:
   test:
@@ -33,7 +31,6 @@ jobs:
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
 
       - name: Upload Playwright report artifact
-        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
@@ -41,28 +38,26 @@ jobs:
           retention-days: 30
 
       - name: Deploy report to GitHub Pages
-        if: ${{ !cancelled() }}
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./playwright-report
-          publish_branch: gh-pages
 
-      - name: Notify Slack about test results
-        if: always()
+      - name: Send Slack Notification
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          fields: repo,message,commit,author,ref,workflow,took
+          fields: repo,message,commit,author,job,took
           custom_payload: |
             {
               "attachments": [
                 {
-                  "color": "${{ job.status == 'success' && 'good' || 'danger' }}",
-                  "text": "✅ *Playwright tests finished with status:* `${{ job.status }}`\n🔗 *[View report](https://volokhmil.github.io/playwright-tests/)*"
+                  "color": "${{ job.status == 'success' && '#36a64f' || '#ff0000' }}",
+                  "title": "Playwright Tests - ${{ job.status }}",
+                  "text": "🔗 [Click here to view the test report](https://volokhmil.github.io/playwright-tests/)",
+                  "mrkdwn_in": ["text"]
                 }
               ]
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          
