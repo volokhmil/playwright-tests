@@ -3,8 +3,10 @@ name: Playwright Tests
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   schedule:
-    - cron: '15 * * * *' # Щогодини о 15 хвилин
+    - cron: '15 * * * *' # Щогодини о 15-й хвилині
 
 jobs:
   test:
@@ -12,9 +14,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: lts/*
 
@@ -25,13 +29,14 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run Playwright tests
-        run: npx playwright test
+        run: npx playwright test --reporter html
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
 
-      - name: Upload Playwright report artifact
+      - name: Upload Playwright HTML report
         uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
         with:
           name: playwright-report
           path: playwright-report/
@@ -41,20 +46,19 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./playwright-report
+          publish_dir: playwright-report
+          publish_branch: gh-pages
 
       - name: Send Slack Notification
         uses: 8398a7/action-slack@v3
         with:
-          status: ${{ job.status }}
-          fields: repo,message,commit,author,job,took
           custom_payload: |
             {
               "attachments": [
                 {
                   "color": "${{ job.status == 'success' && '#36a64f' || '#ff0000' }}",
                   "title": "Playwright Tests - ${{ job.status }}",
-                  "text": "🔗 [Click here to view the test report](https://volokhmil.github.io/playwright-tests/)",
+                  "text": "✅ *Тести виконано:* `${{ job.status }}`\n🔗 *Звіт:* <https://volokhmil.github.io/playwright-tests/>",
                   "mrkdwn_in": ["text"]
                 }
               ]
