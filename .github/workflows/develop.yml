@@ -3,11 +3,9 @@ name: Playwright Tests
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
   schedule:
-    - cron: '15 * * * *'      # щогодини о 15-й хвилині
-  workflow_dispatch:          # ручний триггер для тестування
+    - cron: '15 * * * *'
+  workflow_dispatch:
 
 jobs:
   test:
@@ -15,48 +13,46 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-
-      - name: Run Playwright tests
-        run: npx playwright test --reporter=html
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: lts/* }
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - run: npx playwright test --reporter=html
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
 
-      - name: Deploy HTML report to GitHub Pages
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          personal_token: ${{ secrets.PAT_TOKEN }}
           publish_branch: gh-pages
           publish_dir: playwright-report
 
-      - name: Send Slack notification
+      - name: Send Slack report via webhook
         if: always()
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          custom_payload: |
-            {
-              "attachments": [
-                {
-                  "color": "${{ job.status == 'success' && '#36a64f' || '#ff0000' }}",
-                  "title": "Playwright Tests — ${{ job.status }}",
-                  "text": "🔗 *Звіт:* <https://volokhmil.github.io/playwright-tests/>",
-                  "mrkdwn_in": ["text"]
-                }
-              ]
-            }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          REPORT_URL: https://volokhmil.github.io/playwright-tests/
+          JOB_STATUS: ${{ job.status }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          curl -X POST \
+            -H 'Content-type: application/json' \
+            --data "{
+              \"attachments\": [
+                {
+                  \"color\": \"${{ env.JOB_STATUS == 'success' && '#36a64f' || '#ff0000' }}\",
+                  \"title\": \"Playwright Tests — ${{ env.JOB_STATUS }}\",
+                  \"fields\": [
+                    { \"title\": \"Repo\",       \"value\": \"${{ env.REPO }}\",        \"short\": true },
+                    { \"title\": \"Commit\",     \"value\": \"${{ github.sha }}\",      \"short\": true },
+                    { \"title\": \"Run\",        \"value\": \"<${{ env.RUN_URL }}|view run>\", \"short\": false },
+                    { \"title\": \"HTML Report\",\"value\": \"<${{ env.REPORT_URL }}|open report>\", \"short\": false }
+                  ]
+                }
+              ]
+            }" \
+            $SLACK_WEBHOOK_URL
