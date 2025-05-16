@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron: '30 13 * * *'  # запускається щогодини о 15 хвилин
+    - cron: '30 13 * * *'  # щогодини о 15 хвилин
 
 jobs:
   test:
@@ -32,6 +32,7 @@ jobs:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
 
+      # Завантажуємо звіт як артефакт (про всяк випадок)
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
@@ -39,20 +40,49 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
+      # Публікуємо репорт у GitHub Pages
+      - name: Deploy Playwright Report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./playwright-report
+
+      # Сповіщаємо в Slack (успіх)
       - name: Notify Slack on success
         if: success()
         uses: 8398a7/action-slack@v3
         with:
           status: success
           fields: repo,commit,message,author,job,took
+          custom_payload: |
+            {
+              "text": "✅ Playwright tests passed!",
+              "attachments": [
+                {
+                  "text": "View report: https://${{ github.repository_owner }}.github.io/${{ github.repository }}/",
+                  "color": "good"
+                }
+              ]
+            }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
+      # Сповіщаємо в Slack (помилка)
       - name: Notify Slack on failure
         if: failure()
         uses: 8398a7/action-slack@v3
         with:
           status: failure
           fields: repo,commit,message,author,job,took
+          custom_payload: |
+            {
+              "text": "❌ Playwright tests failed!",
+              "attachments": [
+                {
+                  "text": "Check details: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                  "color": "danger"
+                }
+              ]
+            }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
