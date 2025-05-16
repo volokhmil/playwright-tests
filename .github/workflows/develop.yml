@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron: '15 * * * *'  # Запуск щогодини о 15-й хвилині (UTC)
+    - cron: '20 13 * * *'  # Запуск щогодини о 15-й хвилині (UTC)
 
 jobs:
   test:
