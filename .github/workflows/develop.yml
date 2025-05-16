@@ -52,13 +52,14 @@ jobs:
       - name: Send Slack Notification
         uses: 8398a7/action-slack@v3
         with:
+          status: ${{ job.status }} # <-- обов’язковий параметр
           custom_payload: |
             {
               "attachments": [
                 {
                   "color": "${{ job.status == 'success' && '#36a64f' || '#ff0000' }}",
-                  "title": "Playwright Tests - ${{ job.status }}",
-                  "text": "✅ *Тести виконано:* `${{ job.status }}`\n🔗 *Звіт:* <https://volokhmil.github.io/playwright-tests/>",
+                  "title": "Playwright Tests — ${{ job.status }}",
+                  "text": "*Звіт Playwright:* <https://volokhmil.github.io/playwright-tests/>",
                   "mrkdwn_in": ["text"]
                 }
               ]
