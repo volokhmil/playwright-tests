@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    - cron: '15 * * * *' # Щогодини о 15-й хвилині
+    - cron: '15 * * * *' # щогодини о 15 хвилині
 
 jobs:
   test:
@@ -29,7 +29,7 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run Playwright tests
-        run: npx playwright test --reporter html
+        run: npx playwright test --reporter=html
         env:
           TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
@@ -42,24 +42,24 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      - name: Deploy report to GitHub Pages
+      - name: Deploy HTML report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: playwright-report
           publish_branch: gh-pages
 
-      - name: Send Slack Notification
+      - name: Send Slack notification
         uses: 8398a7/action-slack@v3
         with:
-          status: ${{ job.status }} # <-- обов’язковий параметр
+          status: ${{ job.status }}
           custom_payload: |
             {
               "attachments": [
                 {
                   "color": "${{ job.status == 'success' && '#36a64f' || '#ff0000' }}",
-                  "title": "Playwright Tests — ${{ job.status }}",
-                  "text": "*Звіт Playwright:* <https://volokhmil.github.io/playwright-tests/>",
+                  "title": "✅ Playwright Tests — ${{ job.status }}",
+                  "text": "*GitHub Pages Report:* <https://volokhmil.github.io/playwright-tests/>",
                   "mrkdwn_in": ["text"]
                 }
               ]
