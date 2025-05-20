@@ -57,3 +57,19 @@
 //    const data = await response.json();
 //   console.log(data);
 // })
+
+// tests/create-and-delete-org.spec.js
+const { test, expect } = require('@playwright/test');
+const { GraphQLClient } = require('./utils/graphqlClient');
+
+test('Create and delete organization via GraphQL', async ({ request }) => {
+  const apiURL = 'https://pre-production-api.creativelysquared.com/graphql';
+  const token  = process.env.API_TOKEN; // встанови цей секрет у CI
+
+  const client = new GraphQLClient(request, apiURL, token);
+
+  // 1) Створюємо організацію
+  const orgName = `org-${Date.now()}`;
+  const { name, masterOrganizationId } = await client.createOrganization('rolique.io', orgName);
+  expect(name).toBe(orgName);
+});
