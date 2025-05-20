@@ -23,4 +23,21 @@ test("should log in and navigate to the dashboard", async ({ page }) => {
   await expect(page).toHaveURL(/\/am-dashboard$/);
 
   await expect(page.locator("h1")).toHaveText("Let’s sort your day out");
+  
 });
+
+test("should show error message for invalid credentials", async ({ page }) => {
+  const loginPage = new LoginPage(page);
+
+  // Use invalid credentials
+  const invalidEmail = "invalid@example .com";
+  const invalidPassword = "wrongpassword";
+  await loginPage.goto();
+  await loginPage.login(invalidEmail, invalidPassword);
+  // Verify the error message
+  const errorMessage = page.locator(".error-message");
+  await expect(errorMessage).toBeVisible();
+  await expect(errorMessage).toHaveText("Invalid email or password");
+  // Verify the URL remains the same
+  await expect(page).toHaveURL(/\/login$/); 
+})
